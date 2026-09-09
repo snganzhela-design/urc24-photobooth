@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>URC24 фотозона — оператор</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#0F1012;color:#F4F0E8;font:15px/1.45 Inter,system-ui,sans-serif;padding:24px;cursor:default}
+  h1{font-size:20px;margin:0 0 16px}
+  h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#FF7A3D;margin:24px 0 10px;font-family:ui-monospace,monospace}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .tile{background:#1A1C1E;border:1px solid #2A2D32;border-radius:10px;padding:12px 14px}
+  .tile b{display:block;font-size:26px;font-weight:800}
+  .tile span{font-size:12px;color:#8F8A82;text-transform:uppercase;letter-spacing:.1em}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  button,select{background:#2A2D32;color:#F4F0E8;border:1px solid #3A3D42;border-radius:8px;padding:10px 14px;font:inherit;cursor:pointer}
+  button.primary{background:#FF4D00;color:#0F1012;border-color:#FF4D00;font-weight:700}
+  button.danger{background:#4A1010;border-color:#8A2020}
+  .ok{color:#7ED27E}.bad{color:#FF8A8A}.warn{color:#FFD08A}
+  .recent{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+  .recent figure{margin:0;background:#1A1C1E;border:1px solid #2A2D32;border-radius:8px;overflow:hidden}
+  .recent img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover}
+  .recent figcaption{padding:6px 8px;font-size:12px;color:#CFC9BE;font-family:ui-monospace,monospace}
+  pre{background:#1A1C1E;border:1px solid #2A2D32;border-radius:8px;padding:10px;font-size:12px;overflow:auto;max-height:200px;white-space:pre-wrap}
+  .muted{color:#8F8A82;font-size:13px}
+</style>
+</head>
+<body>
+  <h1>Фотозона URC24 — панель оператора <span class="muted">(Esc — закрыть)</span></h1>
+
+  <div class="grid" id="tiles"></div>
+
+  <h2>ИИ</h2>
+  <div class="row">
+    <span id="ai-state"></span>
+    <label>Модель: <select id="model"></select></label>
+    <label>Стиль: <select id="style"><option value="gray">серый (как на лендинге)</option><option value="color">цветной</option></select></label>
+    <button id="ai-toggle"></button>
+    <button id="ai-reset" class="danger" hidden>Сбросить блокировку ИИ</button>
+    <button id="ai-test">Тест ИИ на последнем кадре</button>
+  </div>
+  <p class="muted" id="ai-test-out"></p>
+
+  <h2>Загрузка на сервер (QR)</h2>
+  <div class="row">
+    <span id="up-state"></span>
+    <button id="retry">Повторить загрузку</button>
+  </div>
+
+  <h2>Камера</h2>
+  <div class="row">
+    <select id="camera"></select>
+    <button id="cam-save" class="primary">Применить</button>
+    <span class="muted">Пусто — камера по умолчанию</span>
+  </div>
+
+  <h2>Нумерация</h2>
+  <div class="row">
+    <label>Следующий номер пилота: <input id="next" type="number" min="1" style="width:90px;background:#2A2D32;color:#F4F0E8;border:1px solid #3A3D42;border-radius:8px;padding:9px"></label>
+    <button id="next-save">Сохранить</button>
+    <button id="reload" class="danger">Перезагрузить экран киоска</button>
+  </div>
+
+  <h2>Последние кадры</h2>
+  <div class="recent" id="recent"></div>
+
+  <h2>Сырой статус</h2>
+  <pre id="raw"></pre>
+
+<script>
+  const $ = (s) => document.querySelector(s);
+  const post = (url, body) => fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) }).then((r) => r.json());
+  let status = null;
+
+  async function refresh() {
+    status = await fetch('/api/status').then((r) => r.json());
+    const c = status.counters, rt = status.runtime;
+    $('#tiles').innerHTML = [
+      ['Кадров', c.shots], ['ИИ ок', c.aiOk], ['ИИ отказ', c.aiFail], ['Загружено', c.uploaded], ['В очереди', status.upload.pending],
+    ].map(([l, v]) => `<div class="tile"><b>${v}</b><span>${l}</span></div>`).join('');
+
+    const aiTxt = !status.ai.configured ? '<span class="bad">ключ не задан</span>'
+      : rt.aiDisabled ? `<span class="bad">заблокирован: ${rt.aiDisabledReason || 'ошибка ключа/баланса'}</span>`
+      : rt.aiEnabled ? `<span class="ok">включён</span> · ${status.ai.gateway}` : '<span class="warn">выключен оператором</span>';
+    $('#ai-state').innerHTML = aiTxt;
+    $('#ai-toggle').textContent = rt.aiEnabled ? 'Выключить ИИ (только рамка)' : 'Включить ИИ';
+    $('#ai-reset').hidden = !rt.aiDisabled;
+    const models = [...new Set([...(status.ai.models || []), 'gemini-2.5-flash-image', 'gemini-3.1-flash-image'])];
+    $('#model').innerHTML = `<option value="">из .env (${(status.ai.models || []).join(', ')})</option>` + models.map((m) => `<option value="${m}" ${rt.model === m ? 'selected' : ''}>${m}</option>`).join('');
+    $('#style').value = rt.style;
+    $('#up-state').innerHTML = !status.upload.configured ? '<span class="bad">UPLOAD_TOKEN не задан — QR не будет работать</span>'
+      : status.upload.lastError ? `<span class="warn">последняя ошибка: ${status.upload.lastError}</span>` : '<span class="ok">ок</span>';
+    $('#next').value = rt.nextNumber;
+    $('#raw').textContent = JSON.stringify(status, null, 2);
+
+    const rec = await fetch('/api/recent').then((r) => r.json());
+    $('#recent').innerHTML = rec.items.map((i) => `<figure><img src="${i.url}?t=${Date.now()}"><figcaption>P${String(i.number || 0).padStart(3, '0')} · ${i.ai ? 'ИИ' : 'без ИИ'} · ${i.uploaded ? 'загружен' : 'в очереди'}</figcaption></figure>`).join('') || '<p class="muted">пока пусто</p>';
+  }
+
+  async function cameras() {
+    try {
+      await navigator.mediaDevices.getUserMedia({ video: true }).then((s) => s.getTracks().forEach((t) => t.stop()));
+      const devs = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
+      const cur = status?.runtime?.cameraLabel || '';
+      $('#camera').innerHTML = '<option value="">по умолчанию</option>' + devs.map((d) => `<option value="${d.label}" ${d.label === cur ? 'selected' : ''}>${d.label || d.deviceId.slice(0, 8)}</option>`).join('');
+    } catch (e) { $('#camera').innerHTML = `<option>камера недоступна: ${e.name}</option>`; }
+  }
+
+  $('#ai-toggle').onclick = async () => { await post('/api/settings', { aiEnabled: !status.runtime.aiEnabled }); refresh(); };
+  $('#ai-reset').onclick = async () => { await post('/api/settings', { resetAiDisabled: true }); refresh(); };
+  $('#model').onchange = async (e) => { await post('/api/settings', { model: e.target.value }); refresh(); };
+  $('#style').onchange = async (e) => { await post('/api/settings', { style: e.target.value }); refresh(); };
+  $('#retry').onclick = async () => { $('#retry').disabled = true; await post('/api/retry-uploads'); $('#retry').disabled = false; refresh(); };
+  $('#cam-save').onclick = async () => { await post('/api/settings', { cameraLabel: $('#camera').value }); refresh(); };
+  $('#next-save').onclick = async () => { await post('/api/settings', { nextNumber: Number($('#next').value) }); refresh(); };
+  $('#reload').onclick = () => { if (window.parent !== window) window.parent.location.reload(); else location.reload(); };
+  $('#ai-test').onclick = async () => {
+    $('#ai-test-out').textContent = 'Запрос к ИИ… до 100 с';
+    const r = await post('/api/test-ai');
+    $('#ai-test-out').innerHTML = r.ok ? `<span class="ok">ок</span> ${r.model}, ${r.ms} мс — <a href="${r.url}" target="_blank" style="color:#FF7A3D">открыть результат</a>`
+      : `<span class="bad">не вышло</span>: ${(r.attempts || []).map((a) => `${a.label}: ${a.kind || ''} ${a.status || ''} ${a.error || ''}`).join(' | ') || r.error}`;
+    refresh();
+  };
+
+  refresh().then(cameras);
+  setInterval(refresh, 8000);
+</script>
+</body>
+</html>

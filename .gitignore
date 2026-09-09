@@ -1,0 +1,8 @@
+node_modules/
+.env
+shots/
+logs/
+smoke-out/
+chrome-profile/
+runtime.json
+smoke-in/

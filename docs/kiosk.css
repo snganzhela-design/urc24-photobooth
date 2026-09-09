@@ -1,0 +1,121 @@
+/* URC24 фотозона — экран киоска. Палитра лендинга: #0F1012 / #FF4D00 / #F4F0E8 / #2A2D32. */
+@font-face{font-family:'Golos Text';font-weight:400 900;font-display:block;src:url('assets/fonts/golos-text-cyrillic.woff2') format('woff2');unicode-range:U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Golos Text';font-weight:400 900;font-display:block;src:url('assets/fonts/golos-text-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Inter';font-weight:100 900;font-display:block;src:url('assets/fonts/inter-cyrillic.woff2') format('woff2');unicode-range:U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Inter';font-weight:100 900;font-display:block;src:url('assets/fonts/inter-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'JetBrains Mono';font-weight:100 800;font-display:block;src:url('assets/fonts/jetbrains-mono-cyrillic.woff2') format('woff2');unicode-range:U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'JetBrains Mono';font-weight:100 800;font-display:block;src:url('assets/fonts/jetbrains-mono-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
+:root{
+  --ink:#F4F0E8; --ink-2:#CFC9BE; --ink-3:#8F8A82;
+  --orange:#FF4D00; --orange-soft:#FF7A3D; --bg:#0F1012; --panel:#1A1C1E; --border:#2A2D32;
+  --mono:'JetBrains Mono',ui-monospace,monospace; --display:'Golos Text',Inter,system-ui,sans-serif; --body:Inter,system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);overflow:hidden;cursor:none;user-select:none;-webkit-font-smoothing:antialiased}
+body[data-state="boot"] .screen,[hidden]{display:none!important}
+
+/* Живое превью камеры — фон idle и отсчёта, зеркально */
+#cam{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);opacity:0;transition:opacity .6s}
+body[data-state="idle"] #cam,body[data-state="count"] #cam{opacity:1}
+#scrim{position:fixed;inset:0;background:linear-gradient(180deg,rgba(15,16,18,.82) 0%,rgba(15,16,18,.25) 40%,rgba(15,16,18,.35) 70%,rgba(15,16,18,.92) 100%);pointer-events:none}
+body[data-state="count"] #scrim{background:radial-gradient(circle at 50% 45%,rgba(15,16,18,0) 30%,rgba(15,16,18,.7) 100%)}
+body[data-state="proc"] #scrim,body[data-state="result"] #scrim{background:var(--bg)}
+
+.brand{position:fixed;left:0;right:0;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:28px 44px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;font-size:14px;color:var(--ink-2)}
+.wordmark{font-family:var(--display);font-weight:800;font-size:28px;letter-spacing:.02em;text-transform:none;color:var(--ink)}
+.wordmark b{color:var(--orange)}
+.by{font-family:var(--mono);font-weight:500;font-size:13px;letter-spacing:.14em;color:var(--ink-3);margin-left:12px;text-transform:uppercase}
+
+.screen{position:fixed;inset:0;z-index:3;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:96px 64px 64px}
+body[data-state="idle"] #s-idle,body[data-state="count"] #s-count,body[data-state="proc"] #s-proc,body[data-state="result"] #s-result{display:flex}
+
+.kicker{font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--orange-soft);margin-bottom:22px}
+h1{font-family:var(--display);font-weight:900;font-size:clamp(64px,9vw,128px);line-height:.95;letter-spacing:-.02em;margin:0 0 28px;text-shadow:0 8px 40px rgba(0,0,0,.6)}
+.lead{font-size:clamp(20px,2vw,28px);line-height:1.35;color:var(--ink-2);max-width:26em;margin:0 0 44px;text-shadow:0 2px 16px rgba(0,0,0,.7)}
+.pulse{display:inline-flex;align-items:center;justify-content:center;padding:26px 56px;border-radius:999px;background:var(--orange);color:#0F1012;font-family:var(--mono);font-weight:800;font-size:26px;letter-spacing:.2em;text-transform:uppercase;box-shadow:0 0 0 0 rgba(255,77,0,.6);animation:pulse 1.6s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,77,0,.65)}70%{box-shadow:0 0 0 34px rgba(255,77,0,0)}100%{box-shadow:0 0 0 0 rgba(255,77,0,0)}}
+.consent{position:absolute;left:64px;right:64px;bottom:36px;margin:0;font-size:14px;line-height:1.4;color:var(--ink-3);text-align:center}
+
+.digit{font-family:var(--display);font-weight:900;font-size:min(42vw,44vh);line-height:1;color:var(--ink);text-shadow:0 0 80px rgba(255,77,0,.45);animation:tick .9s ease-out}
+@keyframes tick{0%{transform:scale(1.25);opacity:0}25%{opacity:1}100%{transform:scale(1)}}
+body[data-state="count"] .lead{margin:0}
+
+.proc-wrap{display:flex;align-items:center;gap:64px;max-width:1400px}
+#proc-img{width:min(46vw,66vh);aspect-ratio:1/1;object-fit:cover;border-radius:12px;border:1px solid var(--border);filter:grayscale(.92) brightness(.66);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.proc-side{text-align:left;max-width:520px}
+.proc-text{font-family:var(--display);font-weight:800;font-size:clamp(34px,3.6vw,56px);line-height:1.05;min-height:2.2em}
+.bar{position:relative;height:6px;border-radius:3px;background:var(--border);overflow:hidden;margin-top:36px}
+.bar i{position:absolute;left:-40%;width:40%;top:0;bottom:0;background:var(--orange);border-radius:3px;animation:slide 1.4s ease-in-out infinite}
+@keyframes slide{0%{left:-40%}100%{left:100%}}
+
+.result-wrap{display:flex;align-items:center;gap:56px;max-width:1500px;width:100%;justify-content:center}
+#final{width:min(56vw,78vh);height:auto;aspect-ratio:1/1;border-radius:12px;border:1px solid var(--border);box-shadow:0 0 0 1px rgba(255,77,0,.3),0 30px 80px rgba(0,0,0,.65);background:#000}
+.qr-card{display:flex;flex-direction:column;align-items:center;text-align:center;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:36px 32px;width:min(28vw,420px)}
+.qr-card .kicker{margin-bottom:18px}
+#qr{width:100%;max-width:300px;aspect-ratio:1/1;border-radius:10px;background:#F4F0E8;padding:8px}
+.qr-lead{font-size:20px;line-height:1.35;color:var(--ink);margin:22px 0 0}
+.note{font-size:15px;line-height:1.4;color:var(--orange-soft);margin:14px 0 0;min-height:1.4em}
+.again{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:26px 0 0}
+/* Кнопка «Сохранить кадр» — только в демо-сборке (в киоске кадр забирают по QR). */
+.save-btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:54px;margin-top:20px;padding:14px 22px;border-radius:10px;background:var(--orange);color:#0F1012;font-family:var(--display);font-weight:800;font-size:18px;text-decoration:none;cursor:pointer}
+
+#flash{position:fixed;inset:0;z-index:9;background:#fff;opacity:0;pointer-events:none}
+#flash.on{animation:flash .5s ease-out}
+@keyframes flash{0%{opacity:.95}100%{opacity:0}}
+#banner,#camwarn{position:fixed;left:50%;transform:translateX(-50%);z-index:20;padding:14px 22px;border-radius:10px;font-family:var(--mono);font-size:14px;letter-spacing:.08em;text-transform:uppercase}
+#banner{top:96px;background:#3A2A00;color:#FFD08A;border:1px solid #7A5A10}
+#camwarn{bottom:96px;background:#4A1010;color:#FFB4B4;border:1px solid #8A2020}
+#adminframe{position:fixed;inset:5vh 5vw;width:90vw;height:90vh;z-index:30;border:1px solid var(--border);border-radius:14px;background:var(--bg)}
+body.admin-open{cursor:default}
+
+/* ---------------------------------------------------------------------------
+   Телефон и планшет в портрете. Киоск живёт на 1920×1080 и этих правил не видит —
+   они нужны демо-стенду на GitHub Pages, который открывают с телефона.
+   --------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  html, body { height: 100dvh; cursor: auto; }
+  .brand { padding: 14px 16px; font-size: 11px; }
+  .wordmark { font-size: 20px; }
+  .by { display: none; }
+  .datefence { font-size: 10px; letter-spacing: .1em; text-align: right; max-width: 46%; }
+
+  .screen { padding: 64px 18px 18px; }
+  .kicker { font-size: 12px; letter-spacing: .18em; margin-bottom: 14px; }
+  h1 { font-size: clamp(38px, 12vw, 56px); margin-bottom: 18px; }
+  .lead { font-size: 16px; margin-bottom: 28px; max-width: none; }
+  .pulse { padding: 18px 32px; font-size: 17px; letter-spacing: .16em; }
+  .consent { left: 16px; right: 16px; bottom: 14px; font-size: 11px; line-height: 1.35; }
+
+  /* Обработка и результат: одна колонка, прокрутка внутри экрана */
+  body[data-state="proc"] #s-proc, body[data-state="result"] #s-result {
+    justify-content: flex-start; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  .proc-wrap { flex-direction: column; gap: 24px; }
+  #proc-img { width: min(72vw, 42vh); }
+  .proc-side { text-align: center; max-width: none; }
+  .proc-text { font-size: 22px; min-height: 2.4em; }
+  .bar { margin-top: 20px; }
+
+  .result-wrap { flex-direction: column; gap: 18px; }
+  #final { width: 100%; max-width: 460px; }
+  .qr-card { width: 100%; max-width: 460px; padding: 18px 16px; }
+  /* На телефоне главное действие — «Сохранить кадр», поэтому оно поднимается над QR:
+     иначе кнопка уходит под сгиб, а гость не догадывается прокрутить. */
+  .qr-card .kicker { order: 1; margin-bottom: 14px; }
+  .save-btn { order: 2; margin: 0 0 16px; }
+  #qr { order: 3; max-width: 150px; }
+  .qr-lead { order: 4; font-size: 14px; margin-top: 12px; }
+  .note { order: 5; font-size: 13px; margin-top: 10px; }
+  .again { order: 6; margin-top: 14px; font-size: 11px; }
+}
+
+/* Телефон в альбомной ориентации: карточка и QR помещаются в ряд, но всё мельче */
+@media (max-width: 900px) and (orientation: landscape) {
+  .result-wrap { flex-direction: row; gap: 14px; align-items: flex-start; }
+  #final { width: min(48vw, 62vh); }
+  .qr-card { width: 42vw; }
+  #qr { max-width: 130px; }
+  h1 { font-size: clamp(30px, 7vw, 44px); }
+  .screen { padding: 52px 16px 16px; }
+}

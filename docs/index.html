@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>URC24 · Фотозона «Стань пилотом» — демо</title>
+  <meta name="description" content="Демо фотозоны UnigeniQ Regen Circuit 24: снимок с камеры превращается в карточку пилота URC24.">
+  <meta name="theme-color" content="#0F1012">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="URC24 · Фотозона «Стань пилотом»">
+  <meta property="og:description" content="Нажми кнопку — камера снимет кадр и оформит его в карточку пилота URC24. Демо работает прямо в браузере.">
+  <meta property="og:url" content="https://snganzhela-design.github.io/urc24-photobooth/">
+<link rel="stylesheet" href="kiosk.css?v=8a6494a2">
+</head>
+<body data-state="boot">
+  <video id="cam" autoplay muted playsinline></video>
+  <div id="scrim"></div>
+
+  <header class="brand">
+    <span class="wordmark">URC<b>24</b> <span class="by">by unigeniq</span></span>
+    <span class="datefence">12.12.2026 · МОСКВА · ОТЕЛЬ «МОНАРХ»</span>
+  </header>
+
+  <section id="s-idle" class="screen">
+    <div class="kicker">Фотозона</div>
+    <h1>Стань пилотом<br>URC24</h1>
+    <p class="lead">Нажми большую кнопку — камера сделает кадр, а ИИ примерит на тебя гоночный комбинезон команды.</p>
+    <div class="pulse"><span>Нажми кнопку</span></div>
+    <p class="consent">Нажимая кнопку, вы соглашаетесь на обработку фотографии: кадр отправляется ИИ‑сервису для обработки и доступен по QR‑ссылке 30 дней.</p>
+  </section>
+
+  <section id="s-count" class="screen">
+    <div class="digit" id="digit">3</div>
+    <p class="lead">Смотри в камеру и улыбайся</p>
+  </section>
+
+  <section id="s-proc" class="screen">
+    <div class="proc-wrap">
+      <img id="proc-img" alt="">
+      <div class="proc-side">
+        <div class="kicker">Пит-стоп</div>
+        <div class="proc-text" id="proc-text">Подбираем комбинезон…</div>
+        <div class="bar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="s-result" class="screen">
+    <div class="result-wrap">
+      <canvas id="final" width="1080" height="1080"></canvas>
+      <aside class="qr-card">
+        <div class="kicker">Твой кадр готов</div>
+        <img id="qr" alt="QR-код для скачивания фото">
+        <p class="qr-lead">Наведи камеру телефона на QR — фото откроется и сохранится</p>
+        <p class="note" id="result-note"></p>
+        <a id="save" class="save-btn" hidden download="urc24-pilot.jpg">Сохранить кадр</a>
+        <p class="again">Нажми кнопку, чтобы сняться ещё раз</p>
+      </aside>
+    </div>
+  </section>
+
+  <div id="flash"></div>
+  <div id="banner" hidden>Переподключение к серверу фотозоны…</div>
+  <div id="camwarn" hidden>Камера не найдена — проверьте USB-кабель</div>
+  <iframe id="adminframe" title="Панель оператора" hidden></iframe>
+  <audio id="snd" src="assets/shutter.mp3" preload="auto"></audio>
+
+  <script>window.BOOTH_DEMO=1</script>
+  <script src="kiosk.js?v=af0e53c1"></script>
+</body>
+</html>

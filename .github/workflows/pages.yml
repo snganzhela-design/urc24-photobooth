@@ -1,0 +1,22 @@
+# Публикация демо-стенда: каждый push в main синхронизирует docs/ в ветку gh-pages,
+# которую раздаёт GitHub Pages (https://snganzhela-design.github.io/urc24-photobooth/).
+# docs/ собирается локально: node scripts/make-pages-demo.mjs
+name: pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
