@@ -20,7 +20,7 @@
   let lastTrigger = 0;
   let resultTimer = null;
   let lastActivity = Date.now();
-  let runtime = { style: 'gray', cameraLabel: '' };
+  let runtime = { style: 'color', cameraLabel: '' };
   let stream = null;
   let statusMisses = 0;
   let adminOpen = false;
@@ -104,14 +104,16 @@
     const dw = img.width * s, dh = img.height * s, dx = (W - dw) / 2, dy = 0;
     ctx.save();
     ctx.beginPath(); ctx.rect(0, 0, W, PH); ctx.clip();
-    ctx.filter = style === 'gray' ? 'grayscale(0.92) brightness(0.66)' : 'none';
+    // Гость = РАСКРЫТЫЙ пилот, а раскрытые карточки на лендинге цветные; жёсткая
+    // серая обработка .92/.66 там только у закрытых и лицо в ней тонет.
+    ctx.filter = style === 'gray' ? 'grayscale(0.55) brightness(0.92)' : 'none';
     ctx.drawImage(img, dx, dy, dw, dh);
     ctx.filter = 'none';
-    if (style === 'gray') { // как .pilot-locked .pilot-photo-lg::before на лендинге
-      const g = ctx.createRadialGradient(W * .5, PH * .42, 0, W * .5, PH * .42, W * .8);
-      g.addColorStop(0, 'rgba(255,77,0,.12)'); g.addColorStop(1, 'rgba(18,15,11,.5)');
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, PH);
-    }
+    // Виньетка остаётся в обоих режимах — она сажает фото в тёмную рамку карточки.
+    const g = ctx.createRadialGradient(W * .5, PH * .42, 0, W * .5, PH * .42, W * .8);
+    g.addColorStop(0, 'rgba(255,77,0,.10)');
+    g.addColorStop(1, style === 'gray' ? 'rgba(18,15,11,.26)' : 'rgba(18,15,11,.18)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, PH);
     ctx.restore();
 
     // Бейдж номера пилота
