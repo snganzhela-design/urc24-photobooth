@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { existsSync, readdirSync, statSync, renameSync, copyFileSync } from 'node:fs';
 import { createState } from './lib/state.mjs';
-import { createUploader } from './lib/upload.mjs';
+import { createUploader, UPLOAD_MAX_BYTES } from './lib/upload.mjs';
 import { aiConfig, generateSuit, saveResult } from './lib/ai.mjs';
 import { prepGuest } from './lib/prep.mjs';
 
@@ -33,17 +33,22 @@ app.use(express.json({ limit: '64kb' }));
 app.use(express.static(join(root, 'public'), { etag: false, maxAge: 0 }));
 app.use('/shots', express.static(state.shotsDir, { etag: false, maxAge: 0 }));
 
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      const id = String(req.body?.id || req.query?.id || '');
-      if (!ID_RE.test(id)) return cb(new Error('bad id'));
-      cb(null, state.shotDir(id));
-    },
-    filename: (req, file, cb) => cb(null, file.fieldname === 'final' ? 'final.jpg' : 'raw.jpg'),
-  }),
-  limits: { fileSize: 12 * 1024 * 1024 },
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const id = String(req.body?.id || req.query?.id || '');
+    if (!ID_RE.test(id)) return cb(new Error('bad id'));
+    cb(null, state.shotDir(id));
+  },
+  filename: (req, file, cb) => cb(null, file.fieldname === 'final' ? 'final.jpg' : 'raw.jpg'),
 });
+// Два лимита (16.10.2026). Сырой кадр с камеры не покидает киоск — в ИИ уходит пережатый
+// prep.jpg 1024², — и ему оставлен запас 12 МБ: кадр 4K q.92 бывает до ~7 МБ. Готовый кадр
+// едет на бэкенд, а тот берёт JPEG до 5 МБ; больший получил бы 422 уже из очереди, когда
+// гость ушёл с QR. Сам он — canvas 1080×1080 q.86: по замеру 16.10.2026 это ~0,1 МБ
+// на фото и ~0,86 МБ на чистом шуме, так что ресайз не нужен. Лимит — сторож на случай,
+// если композицию когда-нибудь увеличат.
+const uploadRaw = multer({ storage, limits: { fileSize: 12 * 1024 * 1024 } });
+const uploadFinal = multer({ storage, limits: { fileSize: UPLOAD_MAX_BYTES } });
 
 // Порядок полей в multipart важен: multer читает id раньше файла только если клиент положил его первым.
 function requireId(req, res) {
@@ -79,7 +84,7 @@ app.get('/api/qr/:id.png', async (req, res) => {
 
 // Шаг 1: сырой кадр → ИИ. Долгий запрос (до ~100 с), single-flight.
 app.post('/api/shot', (req, res, next) => {
-  upload.single('photo')(req, res, (err) => {
+  uploadRaw.single('photo')(req, res, (err) => {
     if (err) return res.status(400).json({ error: String(err.message || err) });
     next();
   });
@@ -135,7 +140,7 @@ app.post('/api/shot', (req, res, next) => {
 
 // Шаг 2: готовый кадр с рамкой → архив + очередь загрузки. QR известен по id заранее.
 app.post('/api/finalize', (req, res, next) => {
-  upload.single('final')(req, res, (err) => {
+  uploadFinal.single('final')(req, res, (err) => {
     if (err) return res.status(400).json({ error: String(err.message || err) });
     next();
   });
