@@ -156,7 +156,7 @@ app.get('/api/recent', (req, res) => {
     .map((d) => ({ id: d.name, mtime: statSync(join(state.shotsDir, d.name, 'final.jpg')).mtimeMs, ...state.readMeta(d.name) }))
     .sort((a, b) => b.mtime - a.mtime)
     .slice(0, 12)
-    .map((m) => ({ id: m.id, number: m.number, ai: m.ai, uploaded: Boolean(m.uploaded), url: `/shots/${m.id}/final.jpg`, pageUrl: photoPageUrl(m.id) }));
+    .map((m) => ({ id: m.id, number: m.number, ai: m.ai, uploaded: Boolean(m.uploaded), rejected: Boolean(m.uploadRejected), url: `/shots/${m.id}/final.jpg`, pageUrl: photoPageUrl(m.id) }));
   res.json({ items });
 });
 
